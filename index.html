@@ -3,150 +3,836 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PDF変換テスト</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ターンオーバー入力</title>
 <style>
-  body { background:#0a0f1e; color:#f1f5f9; font-family:sans-serif; padding:20px; }
-  h2 { color:#60a5fa; }
-  .upload-zone {
-    border:2px dashed #243048; border-radius:12px; padding:30px;
-    text-align:center; cursor:pointer; margin:16px 0;
-    transition:border-color 0.2s;
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #243048;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --red: #ef4444;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --purple: #a855f7;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --kyoto: #3b82f6;
+    --enemy: #ef4444;
   }
-  .upload-zone:hover { border-color:#3b82f6; }
-  .btn { background:#3b82f6; color:#fff; border:none; border-radius:10px; padding:12px 24px; font-size:15px; font-weight:700; cursor:pointer; width:100%; margin-top:10px; }
-  .btn:disabled { background:#243048; color:#64748b; cursor:not-allowed; }
-  #log { background:#111827; border:1px solid #243048; border-radius:10px; padding:14px; margin-top:14px; font-size:13px; line-height:1.8; white-space:pre-wrap; min-height:80px; }
-  #log .ok  { color:#22c55e; }
-  #log .err { color:#ef4444; }
-  #log .info{ color:#60a5fa; }
-  #preview { margin-top:16px; }
-  #preview img { max-width:100%; border-radius:8px; border:1px solid #243048; display:block; margin-top:8px; }
-  .step { background:#1a2332; border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:13px; }
-  .step-num { color:#60a5fa; font-weight:700; margin-right:6px; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100vh; font-size: 14px; overscroll-behavior: none;
+  }
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title { font-size: 15px; font-weight: 700; color: var(--accent2); }
+  .header-q { font-size: 12px; color: var(--text3); }
+  .tabs {
+    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 43px; z-index: 90;
+  }
+  .tab {
+    flex: 1; padding: 11px 4px; text-align: center; font-size: 12px; font-weight: 600;
+    color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .q-bar {
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    padding: 8px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .btn-q {
+    min-width: 44px; padding: 7px 12px; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .btn-q.active { background: var(--accent); color: #fff; }
+  .btn-q:not(.active) { background: var(--border); color: var(--text2); }
+  .btn-q:active { transform: scale(0.93); }
+  .btn {
+    border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+  }
+  .btn:active { transform: scale(0.94); }
+  .btn-primary   { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--border); color: var(--text2); }
+  .btn-success   { background: var(--green); color: #fff; }
+  .btn-sm { padding: 7px 13px; font-size: 12px; border-radius: 8px; }
+  .section-title {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; margin-top: 14px;
+  }
+
+/* ===== スキャンタブ ===== */
+.scan-content { padding: 12px 12px 100px; }
+.scan-upload-card {
+background: var(–surface); border: 1px solid var(–border); border-radius: 16px; padding: 16px; margin-bottom: 14px;
+}
+.upload-zone {
+border: 2px dashed var(–border); border-radius: 12px; padding: 28px 16px;
+text-align: center; cursor: pointer; transition: border-color 0.2s; margin-bottom: 10px;
+}
+.upload-zone:hover { border-color: var(–accent); }
+.upload-zone.has-file { padding: 14px; border-style: solid; border-color: var(–accent); }
+.upload-icon { font-size: 32px; margin-bottom: 6px; }
+.upload-hint { color: var(–text3); font-size: 12px; line-height: 1.6; }
+.file-info { display: flex; align-items: center; gap: 10px; background: var(–surface2); border-radius: 10px; padding: 10px 13px; }
+.file-icon { font-size: 24px; }
+.file-name { font-size: 13px; font-weight: 600; color: var(–accent2); word-break: break-all; }
+.file-type { font-size: 11px; color: var(–text3); margin-top: 2px; }
+.analyze-btn {
+width: 100%; padding: 16px; font-size: 16px; font-weight: 800; border: none; border-radius: 12px;
+cursor: pointer; font-family: inherit; transition: all 0.2s; letter-spacing: 0.02em;
+}
+.analyze-btn:active { transform: scale(0.97); }
+.analyze-btn.ready   { background: var(–accent); color: #fff; }
+.analyze-btn.loading { background: var(–border); color: var(–text2); cursor: not-allowed; }
+.confidence-banner {
+background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35);
+border-radius: 10px; padding: 10px 13px; font-size: 12px; color: var(–yellow);
+margin-bottom: 12px; display: none; gap: 8px; align-items: flex-start;
+}
+.confidence-banner.show { display: flex; }
+
+/* ===== 手入力タブ ===== */
+.input-content { padding: 12px 12px 100px; }
+.grid-card { background: var(–surface); border: 1px solid var(–border); border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+.grid-card-header { padding: 10px 14px; background: var(–surface2); font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.grid-card-header.kyoto { color: var(–kyoto); }
+.grid-card-header.enemy { color: var(–enemy); }
+.grid-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.grid-table th { background: var(–surface2); padding: 7px 5px; text-align: center; color: var(–text3); font-weight: 700; font-size: 11px; border-bottom: 1px solid var(–border); }
+.grid-table th:first-child { text-align: left; padding-left: 12px; }
+.grid-table td { padding: 4px 3px; text-align: center; border-bottom: 1px solid var(–border); }
+.grid-table td:first-child { padding-left: 12px; text-align: left; font-weight: 600; font-size: 12px; }
+.grid-table tr.total-row td { border-bottom: none; font-weight: 700; color: var(–text); background: var(–surface2); }
+.num-input {
+width: 40px; padding: 5px 2px; background: var(–surface2); border: 1px solid var(–border);
+border-radius: 6px; color: var(–text); font-size: 13px; text-align: center; font-family: inherit; transition: border-color 0.2s;
+}
+.num-input:focus { outline: none; border-color: var(–accent); }
+.num-input.low-confidence { border-color: var(–yellow); background: rgba(245,158,11,0.1); }
+.total-cell { font-size: 14px; font-weight: 800; color: var(–accent2); }
+
+/* 背番号リスト */
+.player-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
+.player-row { display: grid; grid-template-columns: 26px 1fr 1fr 28px; align-items: center; gap: 5px; background: var(–surface2); border-radius: 8px; padding: 6px 8px; }
+.player-seq { font-size: 11px; color: var(–text3); text-align: center; font-weight: 700; }
+.player-num-input {
+padding: 5px 7px; background: var(–bg); border: 1px solid var(–border);
+border-radius: 6px; color: var(–text); font-size: 12px; font-family: inherit; width: 100%; transition: border-color 0.2s;
+}
+.player-num-input:focus { outline: none; border-color: var(–accent); }
+.player-num-input.low-confidence { border-color: var(–yellow); background: rgba(245,158,11,0.1); }
+.player-num-input.pc-style { color: var(–accent2); font-weight: 700; }
+.cause-select {
+padding: 5px 4px; background: var(–bg); border: 1px solid var(–border);
+border-radius: 6px; color: var(–text); font-size: 12px; font-family: inherit; width: 100%; transition: border-color 0.2s;
+}
+.cause-select:focus { outline: none; border-color: var(–accent); }
+.cause-select.low-confidence { border-color: var(–yellow); background: rgba(245,158,11,0.1); }
+.btn-del-player { background: none; border: none; color: var(–text3); font-size: 16px; cursor: pointer; padding: 2px; border-radius: 4px; transition: color 0.15s; }
+.btn-del-player:hover { color: var(–red); }
+.btn-add-player {
+width: 100%; margin-top: 6px; padding: 9px; font-size: 13px; font-weight: 700;
+border: 1px dashed var(–border); border-radius: 8px; background: none; color: var(–text3);
+cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.btn-add-player:hover { border-color: var(–accent); color: var(–accent2); }
+
+/* CL */
+.cl-card { background: var(–surface); border: 1px solid var(–border); border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+.cl-card-header { padding: 10px 14px; background: var(–surface2); font-size: 13px; font-weight: 700; color: var(–text2); }
+.cl-row { display: grid; grid-template-columns: 50px 1fr 1fr 70px; padding: 8px 12px; border-bottom: 1px solid var(–border); align-items: center; gap: 8px; }
+.cl-row:last-child { border-bottom: none; }
+.cl-row.header { background: var(–surface2); font-size: 11px; font-weight: 700; color: var(–text3); padding: 6px 12px; }
+.cl-q-label { font-weight: 700; color: var(–text2); font-size: 13px; }
+.cl-oxpair { display: flex; gap: 4px; align-items: center; }
+.cl-rate-box { text-align: center; }
+.cl-rate { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cl-rate-label { font-size: 10px; color: var(–text3); }
+
+/* 集計タブ */
+.summary-content { padding: 12px 12px 100px; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th { background: var(–surface2); padding: 8px 5px; text-align: center; color: var(–text3); font-weight: 700; font-size: 11px; border-bottom: 1px solid var(–border); }
+.data-table td { padding: 7px 5px; text-align: center; border-bottom: 1px solid var(–border); color: var(–text2); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr.total-row td { color: var(–text); font-weight: 700; background: var(–surface2); }
+.table-wrap { background: var(–surface); border: 1px solid var(–border); border-radius: 10px; overflow: hidden; margin-bottom: 14px; overflow-x: auto; }
+.export-section { background: var(–surface); border: 1px solid var(–border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.export-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+/* セットアップ */
+.setup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 300; align-items: center; justify-content: center; padding: 20px; }
+.setup-modal.open { display: flex; }
+.setup-box { background: var(–surface); border: 1px solid var(–border); border-radius: 16px; padding: 22px; width: 100%; max-width: 380px; }
+.setup-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.setup-field { margin-bottom: 12px; }
+.setup-field label { display: block; font-size: 11px; color: var(–text3); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.05em; }
+.text-input { background: var(–surface2); border: 1px solid var(–border); border-radius: 8px; padding: 9px 11px; color: var(–text); font-size: 13px; font-family: inherit; width: 100%; }
+.text-input:focus { outline: none; border-color: var(–accent); }
+
+/* トースト */
+.toast {
+position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+background: var(–surface); border: 1px solid var(–border); border-radius: 12px;
+padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(–text);
+z-index: 500; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.toast.show { display: block; animation: fadeInOut 2.5s ease forwards; }
+@keyframes fadeInOut {
+0%{opacity:0;transform:translateX(-50%) translateY(-6px);}
+15%{opacity:1;transform:translateX(-50%) translateY(0);}
+75%{opacity:1;}100%{opacity:0;}
+}
+.spinner { display:inline-block;width:15px;height:15px;border:2px solid var(–border);border-top-color:var(–accent2);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px; }
+@keyframes spin{to{transform:rotate(360deg)}}
+pre { font-size:11px;color:var(–text2);white-space:pre-wrap;word-break:break-all; }
+.empty-state { text-align:center;padding:20px 0;color:var(–text3);font-size:13px; }
 </style>
+
 </head>
 <body>
 
-<h2>🧪 PDF変換テスト</h2>
-<p style="color:#94a3b8;font-size:13px;">APIは使いません。PDFが正しく画像に変換できるか確認します。</p>
-
-<div style="background:#1a2332;border-radius:12px;padding:14px;margin-bottom:16px;">
-  <div class="step"><span class="step-num">①</span>このHTMLファイルをブラウザで<b>直接開いて</b>使用してください（Claude内プレビューでは動作確認のみ）</div>
-  <div class="step"><span class="step-num">②</span>PDFを選択 → 変換ログを確認 → プレビュー画像を確認</div>
-  <div class="step"><span class="step-num">③</span>画像が正常に表示されれば、本ツールも正常動作します</div>
+<div class="setup-modal open" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-title">🥍 試合情報を入力</div>
+    <div class="setup-field">
+      <label>相手チーム名</label>
+      <input type="text" class="text-input" id="enemyName" placeholder="例: ○○大学">
+    </div>
+    <div class="setup-field">
+      <label>日付</label>
+      <input type="date" class="text-input" id="matchDate">
+    </div>
+    <div class="setup-field">
+      <label>Q数</label>
+      <select class="text-input" id="qCount">
+        <option value="4">4Q制</option>
+        <option value="2">2ピリオド制</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:4px;" onclick="startMatch()">開始</button>
+  </div>
 </div>
 
-<div class="upload-zone" onclick="document.getElementById('fi').click()"
-     ondragover="event.preventDefault()" ondrop="ev=>{ev.preventDefault();run(ev.dataTransfer.files[0])}">
-  <div style="font-size:32px">📄</div>
-  <div style="color:#94a3b8;font-size:13px;margin-top:6px">PDFまたは画像をタップ/ドロップ</div>
-</div>
-<input type="file" id="fi" accept=".pdf,image/*" style="display:none" onchange="run(this.files[0])">
+<div class="toast" id="toast"></div>
 
-<div id="log"><span class="info">ファイルを選択してください...</span></div>
-<div id="preview"></div>
+<div class="header">
+  <div class="header-title">🔄 ターンオーバー入力 v2</div>
+  <div class="header-q" id="headerMeta">—</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('scan',this)">📄 PDF/画像読込</div>
+  <div class="tab" onclick="switchTab('input',this)">✏️ 手入力</div>
+  <div class="tab" onclick="switchTab('summary',this)">📊 集計・出力</div>
+</div>
+
+<div class="q-bar" id="qBar"></div>
+
+<!-- PDF/画像読込 -->
+
+<div class="panel active" id="panel-scan">
+  <div class="scan-content">
+    <div class="scan-upload-card">
+      <div class="section-title" style="margin-top:0">ターンオーバーシート（PDF・画像）</div>
+      <div class="upload-zone" id="uploadZone"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+        <div id="uploadPlaceholder">
+          <div class="upload-icon">📄</div>
+          <div class="upload-hint">PDFまたは画像（jpg/png）<br>タップ選択またはドラッグ＆ドロップ</div>
+        </div>
+        <div id="fileInfoBox" class="file-info" style="display:none">
+          <div class="file-icon" id="fileIconEl">📄</div>
+          <div>
+            <div class="file-name" id="fileNameEl">—</div>
+            <div class="file-type" id="fileTypeEl">—</div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,image/*" style="display:none" onchange="handleFile(event)">
+      <button class="analyze-btn loading" id="analyzeBtn" onclick="analyze()" disabled>🔍 AIで解析する</button>
+    </div>
+    <div class="confidence-banner" id="confidenceBanner">
+      <span style="flex-shrink:0">⚠️</span>
+      <span id="confidenceText"></span>
+    </div>
+    <div id="scanDoneCard" style="display:none;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.3);border-radius:12px;padding:13px;font-size:13px;color:var(--green);margin-bottom:12px;">
+      ✔ 解析完了。<b style="color:var(--accent2)">手入力タブ</b>に反映しました。黄色セルを確認・修正してください。
+    </div>
+    <!-- 読み取りルール説明 -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px;font-size:12px;color:var(--text3);line-height:1.7;">
+      <div style="font-weight:700;color:var(--text2);margin-bottom:6px;">📋 読み取りルール</div>
+      <div>・集計表の「/」は <b style="color:var(--text)">1</b> として読み取ります</div>
+      <div>・「正」の字は <b style="color:var(--text)">5</b> として数えます</div>
+      <div>・背番号欄の <b style="color:var(--accent2)">5→13</b> 表記はPC時の2人の選手を示します</div>
+      <div>・欄外のCL成功率（〇正 / ×正）も読み取ります</div>
+    </div>
+  </div>
+</div>
+
+<!-- 手入力 -->
+
+<div class="panel" id="panel-input">
+  <div class="input-content">
+    <div class="grid-card">
+      <div class="grid-card-header kyoto">🔵 京大（奪われたTO）</div>
+      <table class="grid-table" id="tableKyoto"></table>
+    </div>
+    <div class="grid-card">
+      <div class="grid-card-header enemy">🔴 相手（京大が奪ったTO）</div>
+      <table class="grid-table" id="tableEnemy"></table>
+    </div>
+    <div class="grid-card">
+      <div class="grid-card-header kyoto">👤 背番号別原因（京大）</div>
+      <div class="player-list" id="playerListKyoto"></div>
+      <div style="padding:0 12px 12px"><button class="btn-add-player" onclick="addPlayer('kyoto')">＋ 行を追加</button></div>
+    </div>
+    <div class="grid-card">
+      <div class="grid-card-header enemy">👤 背番号別原因（相手）</div>
+      <div class="player-list" id="playerListEnemy"></div>
+      <div style="padding:0 12px 12px"><button class="btn-add-player" onclick="addPlayer('enemy')">＋ 行を追加</button></div>
+    </div>
+    <div class="cl-card">
+      <div class="cl-card-header">🚀 CL成功率</div>
+      <div class="cl-row header">
+        <div>Q</div>
+        <div style="color:var(--kyoto)">京大 〇/✕</div>
+        <div style="color:var(--enemy)">相手 〇/✕</div>
+        <div>成功率</div>
+      </div>
+      <div id="clRows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 集計・出力 -->
+
+<div class="panel" id="panel-summary">
+  <div class="summary-content">
+    <div class="section-title">京大 TO Q別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Q</th><th>PC</th><th>キープ</th><th>ファール</th><th>インター</th><th>ショット</th><th>チェイス</th><th>他</th><th>計</th></tr></thead>
+        <tbody id="summaryKyotoBody"></tbody>
+      </table>
+    </div>
+    <div class="section-title" style="color:var(--enemy)">相手 TO Q別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Q</th><th>PC</th><th>キープ</th><th>ファール</th><th>インター</th><th>ショット</th><th>チェイス</th><th>他</th><th>計</th></tr></thead>
+        <tbody id="summaryEnemyBody"></tbody>
+      </table>
+    </div>
+    <div class="section-title">CL成功率</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Q</th><th>京大〇</th><th>京大✕</th><th>京大率</th><th>相手〇</th><th>相手✕</th><th>相手率</th></tr></thead>
+        <tbody id="summaryClBody"></tbody>
+      </table>
+    </div>
+    <div class="section-title">背番号別原因 一覧</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>背番号</th><th>原因</th><th>チーム</th></tr></thead>
+        <tbody id="summaryPlayerBody"></tbody>
+      </table>
+    </div>
+    <div class="section-title">データ出力</div>
+    <div class="export-section">
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">possession_toolと同形式のJSONで出力します。</div>
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON</button>
+        <button class="btn btn-success" onclick="exportCSV()">📄 CSV</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearAll()">🗑 全クリア</button>
+      </div>
+    </div>
+    <div class="section-title">JSONプレビュー</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;">
+      <pre id="jsonPreview">データを入力すると表示されます</pre>
+    </div>
+  </div>
+</div>
 
 <script>
-const log = document.getElementById('log');
-const preview = document.getElementById('preview');
+const CATS = ['PC','キープ','ファール','インター','ショット','チェイス','その他'];
+const CAT_COLORS = {'PC':'var(--accent2)','キープ':'#a3e635','ファール':'var(--red)','インター':'var(--purple)','ショット':'var(--yellow)','チェイス':'#fb923c','その他':'var(--text2)'};
 
-function addLog(msg, cls='info'){
-  const span = document.createElement('span');
-  span.className = cls;
-  span.textContent = msg + '\n';
-  log.appendChild(span);
-  log.scrollTop = log.scrollHeight;
+const state = {
+  match: {enemy:'相手',date:'',qCount:4},
+  currentQ: 1,
+  lowFields: new Set(),
+  kyoto: emptyGrid(),
+  enemy: emptyGrid(),
+  kyoto_players: [],
+  enemy_players: [],
+  cl: {kyoto:emptyClQ(),enemy:emptyClQ()},
+};
+
+function emptyGrid(){const g={};CATS.forEach(c=>{g[c]={'1Q':'','2Q':'','3Q':'','4Q':''};});return g;}
+function emptyClQ(){return{'1Q':{o:'',x:''},'2Q':{o:'',x:''},'3Q':{o:'',x:''},'4Q':{o:'',x:''}};}
+function getQs(){return Array.from({length:state.match.qCount},(_,i)=>`${i+1}Q`);}
+
+function startMatch(){
+  const enemy=document.getElementById('enemyName').value.trim()||'相手';
+  const date=document.getElementById('matchDate').value;
+  const qCount=parseInt(document.getElementById('qCount').value);
+  state.match={enemy,date,qCount};
+  document.getElementById('headerMeta').textContent=`${date} vs ${enemy}`;
+  document.getElementById('setupModal').classList.remove('open');
+  buildQBar();renderAll();
 }
 
-async function run(file){
-  if(!file) return;
-  log.innerHTML = '';
-  preview.innerHTML = '';
-  addLog(`ファイル名: ${file.name}`);
-  addLog(`ファイルサイズ: ${(file.size/1024).toFixed(1)} KB`);
-  addLog(`MIMEタイプ: ${file.type || '不明'}`);
-
-  const isPdf = file.type==='application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-
-  if(isPdf){
-    addLog('--- PDF変換開始 ---');
-    try {
-      addLog('PDF.js読み込み中...');
-      if(!window.pdfjsLib){
-        await new Promise((resolve, reject) => {
-          const s = document.createElement('script');
-          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-          s.onload = resolve;
-          s.onerror = () => reject(new Error('PDF.js CDN読み込み失敗（ネット接続を確認）'));
-          document.head.appendChild(s);
-        });
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      }
-      addLog('PDF.js 読み込み完了', 'ok');
-
-      addLog('PDFデータ読み込み中...');
-      const buf = await file.arrayBuffer();
-      addLog(`ArrayBuffer: ${buf.byteLength} bytes`, 'ok');
-
-      const pdf = await pdfjsLib.getDocument({data: buf}).promise;
-      addLog(`ページ数: ${pdf.numPages}`, 'ok');
-
-      const scale = 2.5;
-      const canvases = [];
-      for(let i = 1; i <= pdf.numPages; i++){
-        addLog(`ページ ${i}/${pdf.numPages} レンダリング中...`);
-        const page = await pdf.getPage(i);
-        const vp = page.getViewport({scale});
-        const c = document.createElement('canvas');
-        c.width = vp.width; c.height = vp.height;
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
-        await page.render({canvasContext: ctx, viewport: vp}).promise;
-        canvases.push(c);
-        addLog(`  → ${vp.width.toFixed(0)}×${vp.height.toFixed(0)}px`, 'ok');
-      }
-
-      // 結合
-      const totalH = canvases.reduce((s,c)=>s+c.height,0);
-      const maxW = Math.max(...canvases.map(c=>c.width));
-      const merged = document.createElement('canvas');
-      merged.width = maxW; merged.height = totalH;
-      const mctx = merged.getContext('2d');
-      mctx.fillStyle='#fff'; mctx.fillRect(0,0,maxW,totalH);
-      let y=0; canvases.forEach(c=>{mctx.drawImage(c,0,y);y+=c.height;});
-
-      const dataUrl = merged.toDataURL('image/png');
-      const base64size = (dataUrl.length * 0.75 / 1024).toFixed(1);
-      addLog(`変換完了！画像サイズ: ${maxW.toFixed(0)}×${totalH.toFixed(0)}px, base64: ~${base64size}KB`, 'ok');
-      addLog('--- プレビュー表示 ---', 'ok');
-
-      const img = document.createElement('img');
-      img.src = dataUrl;
-      preview.appendChild(document.createTextNode('▼ 変換結果プレビュー'));
-      preview.appendChild(img);
-
-      addLog('✅ 変換成功！本ツールで正常に解析できます', 'ok');
-
-    } catch(e) {
-      addLog('❌ エラー: ' + e.message, 'err');
-    }
-
-  } else {
-    addLog('画像ファイルとして読み込み中...');
-    const reader = new FileReader();
-    reader.onload = e => {
-      addLog('読み込み完了', 'ok');
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      preview.appendChild(document.createTextNode('▼ 画像プレビュー'));
-      preview.appendChild(img);
-      addLog('✅ 画像OK！本ツールで解析できます', 'ok');
-    };
-    reader.readAsDataURL(file);
+function buildQBar(){
+  const bar=document.getElementById('qBar');
+  bar.innerHTML='<span style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.08em;">Q:</span>';
+  for(let i=1;i<=state.match.qCount;i++){
+    const b=document.createElement('button');
+    b.className='btn-q'+(i===state.currentQ?' active':'');
+    b.textContent=`Q${i}`;b.onclick=()=>setQ(i);bar.appendChild(b);
   }
 }
+function setQ(q){state.currentQ=q;buildQBar();renderAll();}
+
+function toast(msg,color){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.borderColor=color||'var(--border)';
+  el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+}
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  if(el)el.classList.add('active');
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='summary'){updateSummary();updateJSONPreview();}
+}
+function isLow(p){return state.lowFields.has(p);}
+
+// ===== ファイル処理（PDF.jsでPDF→PNG変換） =====
+let fileData=null;
+function handleFile(e){loadFile(e.target.files[0]);}
+function handleDrop(e){e.preventDefault();loadFile(e.dataTransfer.files[0]);}
+
+async function loadFile(file){
+  if(!file)return;
+  const isPdf=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
+  document.getElementById('uploadPlaceholder').style.display='none';
+  const box=document.getElementById('fileInfoBox');box.style.display='flex';
+  document.getElementById('fileIconEl').textContent=isPdf?'📄':'🖼';
+  document.getElementById('fileNameEl').textContent=file.name;
+  document.getElementById('fileTypeEl').textContent=isPdf?'変換中... ⏳':'画像ファイル';
+  document.getElementById('uploadZone').classList.add('has-file');
+  const btn=document.getElementById('analyzeBtn');
+  btn.classList.remove('ready');btn.classList.add('loading');btn.disabled=true;
+  btn.innerHTML='⏳ 準備中...';
+  try{
+    let base64,mediaType;
+    if(isPdf){
+      const result=await pdfToImageBase64(file);
+      base64=result.base64;mediaType=result.mediaType;
+      document.getElementById('fileTypeEl').textContent='PDF → 画像変換済み ✔';
+    }else{
+      const dataUrl=await new Promise(r=>{const rd=new FileReader();rd.onload=e=>r(e.target.result);rd.readAsDataURL(file);});
+      base64=dataUrl.split(',')[1];mediaType=file.type;
+      document.getElementById('fileTypeEl').textContent='画像ファイル';
+    }
+    fileData={base64,mediaType};
+    btn.innerHTML='🔍 AIで解析する';
+    btn.classList.remove('loading');btn.classList.add('ready');btn.disabled=false;
+  }catch(e){
+    toast('❌ ファイル変換エラー: '+e.message,'var(--red)');
+    document.getElementById('fileTypeEl').textContent='変換失敗';
+    btn.innerHTML='🔍 AIで解析する';
+    btn.classList.remove('loading');btn.classList.add('ready');
+  }
+}
+
+async function pdfToImageBase64(file){
+  if(!window.pdfjsLib){
+    await new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload=resolve;s.onerror=()=>reject(new Error('PDF.js読み込み失敗'));
+      document.head.appendChild(s);
+    });
+    pdfjsLib.GlobalWorkerOptions.workerSrc=
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const canvases=[];
+  // スケール1.8で試し、画像が大きすぎれば縮小
+  let scale=1.8;
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);
+    const vp=page.getViewport({scale});
+    const c=document.createElement('canvas');
+    c.width=vp.width;c.height=vp.height;
+    const ctx=c.getContext('2d');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+    await page.render({canvasContext:ctx,viewport:vp}).promise;
+    canvases.push(c);
+  }
+  const totalH=canvases.reduce((s,c)=>s+c.height,0);
+  const maxW=Math.max(...canvases.map(c=>c.width));
+  const merged=document.createElement('canvas');
+  merged.width=maxW;merged.height=totalH;
+  const mctx=merged.getContext('2d');
+  mctx.fillStyle='#fff';mctx.fillRect(0,0,maxW,totalH);
+  let y=0;canvases.forEach(c=>{mctx.drawImage(c,0,y);y+=c.height;});
+  // JPEG品質0.85で圧縮（PNGより大幅に小さい）
+  let quality=0.85;
+  let dataUrl=merged.toDataURL('image/jpeg',quality);
+  let base64=dataUrl.split(',')[1];
+  // 4MB超えたら品質を下げて再試行
+  while(base64.length>4*1024*1024*1.37&&quality>0.4){
+    quality-=0.1;
+    dataUrl=merged.toDataURL('image/jpeg',quality);
+    base64=dataUrl.split(',')[1];
+    console.log('圧縮: quality='+quality.toFixed(1)+' size='+Math.round(base64.length/1024)+'KB');
+  }
+  console.log('最終画像サイズ: '+Math.round(base64.length/1024)+'KB, quality='+quality.toFixed(1));
+  return {base64, mediaType:'image/jpeg'};
+}
+
+// ===== AI解析 =====
+const SYSTEM_PROMPT=`あなたはラクロスの試合データを紙のシートから読み取る専門家です。
+ターンオーバーシートを解析して、以下のJSON形式のみを出力してください。
+前後に説明文やマークダウン記号は一切含めないでください。
+
+【重要な読み取りルール】
+1. 集計表の数値欄に「/」のように見える記号があれば「1」として読み取る
+2. 「正」の字は5として数える（正の字が重なっていれば×5）
+3. 背番号欄の「5→13」「22→14」のような表記はPCの場合に2人関与を示す。numフィールドに"5→13"のまま文字列で保存
+4. 背番号欄が「?」の場合は"?"とそのまま保存
+5. 集計表の合計行は再計算するので読み取り不要（0でOK）
+6. CLの成功率データは、シート左右の欄外に「CL成功率 1Q 1/6=17%」のように書かれていることが多い。「〇 正」が成功数、「× 正」または「×　—」が失敗数として読む
+
+{
+  "date": "月/日 例:6/15",
+  "opponent": "相手チーム名",
+  "score": "スコア 例:8-5",
+  "kyoto": {
+    "PC":{"1Q":数値,"2Q":数値,"3Q":数値,"4Q":数値},
+    "キープ":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "ファール":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "インター":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "ショット":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "チェイス":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "その他":{"1Q":0,"2Q":0,"3Q":0,"4Q":0}
+  },
+  "enemy":{
+    "PC":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "キープ":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "ファール":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "インター":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "ショット":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "チェイス":{"1Q":0,"2Q":0,"3Q":0,"4Q":0},
+    "その他":{"1Q":0,"2Q":0,"3Q":0,"4Q":0}
+  },
+  "kyoto_players":[
+    {"seq":1,"num":"5→13","cause":"PC"},
+    {"seq":2,"num":"13","cause":"キープ"}
+  ],
+  "enemy_players":[
+    {"seq":1,"num":"22→14","cause":"PC"}
+  ],
+  "cl":{
+    "kyoto":{"1Q":{"o":成功数,"x":失敗数},"2Q":{"o":0,"x":0},"3Q":{"o":0,"x":0},"4Q":{"o":0,"x":0}},
+    "enemy":{"1Q":{"o":0,"x":0},"2Q":{"o":0,"x":0},"3Q":{"o":0,"x":0},"4Q":{"o":0,"x":0}}
+  },
+  "confidence":{
+    "low_fields":["読み取り不確かなパス例: kyoto.PC.1Q"]
+  }
+}`;
+
+async function analyze(){
+  if(!fileData)return;
+  const btn=document.getElementById('analyzeBtn');
+  btn.innerHTML='<span class="spinner"></span>解析中...';
+  btn.classList.remove('ready');btn.classList.add('loading');btn.disabled=true;
+  try{
+    const contentBlock={type:'image',source:{type:'base64',media_type:fileData.mediaType,data:fileData.base64}};
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:4000,
+        system:SYSTEM_PROMPT,
+        messages:[{role:'user',content:[contentBlock,{type:'text',text:'このターンオーバーシートを解析してJSONのみで出力してください。'}]}]
+      })
+    });
+    const json=await res.json();
+    // APIエラーチェック
+    if(json.error){throw new Error('API: '+json.error.message);}
+    if(json.stop_reason==='max_tokens'){throw new Error('レスポンスが長すぎます（max_tokens超過）');}
+    const text=json.content?.find(b=>b.type==='text')?.text||'';
+    console.log('RAW RESPONSE:', text.slice(0,300));
+    // JSON抽出：```ブロックまたは裸のJSONどちらも対応
+    let clean=text.trim();
+    const m=clean.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if(m)clean=m[1].trim();
+    // 先頭・末尾の余分な文字を除去
+    const start=clean.indexOf('{');
+    const end=clean.lastIndexOf('}');
+    if(start===-1||end===-1)throw new Error('JSONが見つかりません。レスポンス: '+text.slice(0,100));
+    clean=clean.slice(start,end+1);
+    const parsed=JSON.parse(clean);
+    applyParsedData(parsed);
+    document.getElementById('scanDoneCard').style.display='block';
+    toast('✔ 解析完了！手入力タブで確認してください','var(--green)');
+  }catch(e){
+    toast('❌ '+e.message,'var(--red)');
+    console.error('ANALYZE ERROR:', e);
+  }
+  btn.innerHTML='🔍 再解析する';
+  btn.classList.remove('loading');btn.classList.add('ready');btn.disabled=false;
+}
+
+function applyParsedData(p){
+  const lf=new Set(p.confidence?.low_fields||[]);
+  state.lowFields=lf;
+  CATS.forEach(cat=>{
+    ['1Q','2Q','3Q','4Q'].forEach(q=>{
+      state.kyoto[cat][q]=String(p.kyoto?.[cat]?.[q]??0);
+      state.enemy[cat][q]=String(p.enemy?.[cat]?.[q]??0);
+    });
+  });
+  state.kyoto_players=(p.kyoto_players||[]).map((pp,i)=>({id:Date.now()+i,seq:pp.seq??(i+1),num:String(pp.num??''),cause:pp.cause??''}));
+  state.enemy_players=(p.enemy_players||[]).map((pp,i)=>({id:Date.now()+1000+i,seq:pp.seq??(i+1),num:String(pp.num??''),cause:pp.cause??''}));
+  ['kyoto','enemy'].forEach(side=>{
+    ['1Q','2Q','3Q','4Q'].forEach(q=>{
+      state.cl[side][q].o=String(p.cl?.[side]?.[q]?.o??'');
+      state.cl[side][q].x=String(p.cl?.[side]?.[q]?.x??'');
+    });
+  });
+  if(lf.size>0){
+    document.getElementById('confidenceText').textContent=`${lf.size}項目が低信頼度です。黄色のセルを確認してください。`;
+    document.getElementById('confidenceBanner').classList.add('show');
+  }
+  renderAll();
+}
+
+// ===== 描画 =====
+function renderAll(){
+  renderGrid('tableKyoto','kyoto');
+  renderGrid('tableEnemy','enemy');
+  renderPlayerList('kyoto');
+  renderPlayerList('enemy');
+  renderClRows();
+}
+
+function renderGrid(tableId,side){
+  const qs=getQs();
+  const table=document.getElementById(tableId);
+  let html=`<thead><tr><th>原因</th>${qs.map(q=>`<th>${q}</th>`).join('')}<th>計</th></tr></thead><tbody>`;
+  CATS.forEach(cat=>{
+    html+=`<tr><td style="color:${CAT_COLORS[cat]}">${cat}</td>`;
+    qs.forEach(q=>{
+      const path=`${side}.${cat}.${q}`;
+      const val=state[side][cat][q];
+      html+=`<td><input type="number" min="0" class="num-input${isLow(path)?' low-confidence':''}" value="${val==='0'||val===0?'':val}" oninput="updateGrid('${side}','${cat}','${q}',this.value)" inputmode="numeric"></td>`;
+    });
+    const tot=qs.reduce((s,q)=>s+(parseInt(state[side][cat][q])||0),0);
+    html+=`<td class="total-cell">${tot||''}</td></tr>`;
+  });
+  const qTots=qs.map(q=>CATS.reduce((a,c)=>a+(parseInt(state[side][c][q])||0),0));
+  const grand=qTots.reduce((a,b)=>a+b,0);
+  html+=`<tr class="total-row"><td>合計</td>${qTots.map(v=>`<td class="total-cell">${v||''}</td>`).join('')}<td class="total-cell">${grand||''}</td></tr></tbody>`;
+  table.innerHTML=html;
+}
+
+function updateGrid(side,cat,q,val){
+  state[side][cat][q]=val||'0';
+  renderGrid(side==='kyoto'?'tableKyoto':'tableEnemy',side);
+  updateSummary();
+}
+
+function renderPlayerList(side){
+  const arr=state[`${side}_players`];
+  const container=document.getElementById(`playerList${side==='kyoto'?'Kyoto':'Enemy'}`);
+  if(arr.length===0){container.innerHTML='<div class="empty-state">データなし</div>';return;}
+  const catOpts=CATS.map(c=>`<option value="${c}">${c}</option>`).join('');
+  let html='';
+  arr.forEach((p,i)=>{
+    const numPath=`${side}_players.${i}.num`;
+    const causePath=`${side}_players.${i}.cause`;
+    const isPC=p.cause==='PC';
+    const opts=`<option value="">—</option>`+CATS.map(c=>`<option value="${c}"${p.cause===c?' selected':''}>${c}</option>`).join('');
+    html+=`<div class="player-row">
+      <div class="player-seq">${p.seq}</div>
+      <input type="text" class="player-num-input${isLow(numPath)?' low-confidence':''}${isPC?' pc-style':''}"
+        value="${p.num}" placeholder="${isPC?'例: 5→13':'背番号'}"
+        oninput="state['${side}_players'][${i}].num=this.value">
+      <select class="cause-select${isLow(causePath)?' low-confidence':''}" onchange="updatePlayerCause('${side}',${i},this.value)">${opts}</select>
+      <button class="btn-del-player" onclick="deletePlayer('${side}',${i})">✕</button>
+    </div>`;
+  });
+  container.innerHTML=html;
+}
+
+function addPlayer(side){
+  const arr=state[`${side}_players`];
+  arr.push({id:Date.now(),seq:arr.length+1,num:'',cause:''});
+  renderPlayerList(side);
+}
+function deletePlayer(side,idx){
+  const arr=state[`${side}_players`];
+  arr.splice(idx,1);arr.forEach((p,i)=>p.seq=i+1);
+  renderPlayerList(side);updateSummary();
+}
+function updatePlayerCause(side,idx,val){
+  state[`${side}_players`][idx].cause=val;
+  renderPlayerList(side);updateSummary();
+}
+
+function renderClRows(){
+  const qs=getQs();let html='';
+  qs.forEach(q=>{
+    const ko=state.cl.kyoto[q].o,kx=state.cl.kyoto[q].x;
+    const eo=state.cl.enemy[q].o,ex=state.cl.enemy[q].x;
+    const kr=calcRate(ko,kx),er=calcRate(eo,ex);
+    html+=`<div class="cl-row">
+      <div class="cl-q-label">${q}</div>
+      <div class="cl-oxpair">
+        <input type="number" class="num-input" style="width:38px" value="${ko||''}" oninput="updateCl('kyoto','${q}','o',this.value)" inputmode="numeric" placeholder="〇">
+        <span style="color:var(--text3);font-size:11px">/</span>
+        <input type="number" class="num-input" style="width:38px" value="${kx||''}" oninput="updateCl('kyoto','${q}','x',this.value)" inputmode="numeric" placeholder="✕">
+      </div>
+      <div class="cl-oxpair">
+        <input type="number" class="num-input" style="width:38px" value="${eo||''}" oninput="updateCl('enemy','${q}','o',this.value)" inputmode="numeric" placeholder="〇">
+        <span style="color:var(--text3);font-size:11px">/</span>
+        <input type="number" class="num-input" style="width:38px" value="${ex||''}" oninput="updateCl('enemy','${q}','x',this.value)" inputmode="numeric" placeholder="✕">
+      </div>
+      <div class="cl-rate-box">
+        <div class="cl-rate" style="color:${rateColor(kr)}">${kr!==null?kr+'%':'—'}</div>
+        <div class="cl-rate-label">京大</div>
+        <div class="cl-rate" style="color:${rateColor(er)};font-size:12px">${er!==null?er+'%':'—'}</div>
+        <div class="cl-rate-label">相手</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('clRows').innerHTML=html;
+}
+
+function updateCl(side,q,ox,val){state.cl[side][q][ox]=val;renderClRows();updateSummary();}
+function calcRate(o,x){const on=parseInt(o)||0,xn=parseInt(x)||0;if(on+xn===0)return null;return Math.round(on/(on+xn)*100);}
+function rateColor(r){if(r===null)return'var(--text3)';if(r>=70)return'var(--green)';if(r>=50)return'var(--yellow)';return'var(--red)';}
+
+function updateSummary(){
+  const qs=getQs();
+  ['Kyoto','Enemy'].forEach(suf=>{
+    const side=suf.toLowerCase();
+    const body=document.getElementById(`summary${suf}Body`);
+    let html='',totCats={};CATS.forEach(c=>totCats[c]=0);
+    qs.forEach(q=>{
+      const vals=CATS.map(c=>parseInt(state[side][c][q])||0);
+      const rowTot=vals.reduce((a,b)=>a+b,0);
+      CATS.forEach((c,i)=>totCats[c]+=vals[i]);
+      html+=`<tr><td>${q}</td>${vals.map(v=>`<td>${v||''}</td>`).join('')}<td>${rowTot||''}</td></tr>`;
+    });
+    const totRow=CATS.map(c=>totCats[c]);
+    const grand=totRow.reduce((a,b)=>a+b,0);
+    html+=`<tr class="total-row"><td>計</td>${totRow.map(v=>`<td>${v||''}</td>`).join('')}<td>${grand||''}</td></tr>`;
+    body.innerHTML=html;
+  });
+  const clBody=document.getElementById('summaryClBody');
+  let html='',totKo=0,totKx=0,totEo=0,totEx=0;
+  qs.forEach(q=>{
+    const ko=parseInt(state.cl.kyoto[q].o)||0,kx=parseInt(state.cl.kyoto[q].x)||0;
+    const eo=parseInt(state.cl.enemy[q].o)||0,ex=parseInt(state.cl.enemy[q].x)||0;
+    const kr=calcRate(ko,kx),er=calcRate(eo,ex);
+    totKo+=ko;totKx+=kx;totEo+=eo;totEx+=ex;
+    html+=`<tr><td>${q}</td>
+      <td style="color:var(--green)">${ko||''}</td><td style="color:var(--red)">${kx||''}</td>
+      <td style="color:${rateColor(kr)}">${kr!==null?kr+'%':'—'}</td>
+      <td style="color:var(--green)">${eo||''}</td><td style="color:var(--red)">${ex||''}</td>
+      <td style="color:${rateColor(er)}">${er!==null?er+'%':'—'}</td></tr>`;
+  });
+  const kr=calcRate(totKo,totKx),er=calcRate(totEo,totEx);
+  html+=`<tr class="total-row"><td>計</td><td>${totKo||''}</td><td>${totKx||''}</td>
+    <td style="color:${rateColor(kr)}">${kr!==null?kr+'%':'—'}</td>
+    <td>${totEo||''}</td><td>${totEx||''}</td>
+    <td style="color:${rateColor(er)}">${er!==null?er+'%':'—'}</td></tr>`;
+  clBody.innerHTML=html;
+  const pb=document.getElementById('summaryPlayerBody');
+  const rows=[...state.kyoto_players.map(p=>({...p,tl:'京大',tc:'var(--kyoto)'})),...state.enemy_players.map(p=>({...p,tl:'相手',tc:'var(--enemy)'}))];
+  pb.innerHTML=rows.length===0
+    ?'<tr><td colspan="4" style="color:var(--text3);padding:14px">データなし</td></tr>'
+    :rows.map(p=>`<tr>
+      <td>${p.seq}</td>
+      <td style="font-weight:700;color:${p.cause==='PC'?'var(--accent2)':'var(--text)'}">${p.num}</td>
+      <td style="color:${CAT_COLORS[p.cause]||'var(--text2)'}">${p.cause||'—'}</td>
+      <td style="color:${p.tc}">${p.tl}</td>
+    </tr>`).join('');
+}
+
+function updateJSONPreview(){document.getElementById('jsonPreview').textContent=JSON.stringify(buildJSON(),null,2);}
+
+function buildJSON(){
+  return{
+    meta:{...state.match,exportedAt:new Date().toISOString(),tool:'KyotoLacrosse TurnoverTool v2.0'},
+    turnover:{kyoto:state.kyoto,enemy:state.enemy,kyoto_players:state.kyoto_players,enemy_players:state.enemy_players},
+    cl:state.cl,
+  };
+}
+
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(buildJSON(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`to_${state.match.date}_${state.match.enemy}.json`;a.click();
+  toast('✔ JSON保存しました','var(--green)');
+}
+
+function exportCSV(){
+  const bom='\uFEFF';const qs=getQs();
+  const lines=['チーム,原因,'+qs.join(',')+',合計'];
+  ['kyoto','enemy'].forEach(side=>{
+    CATS.forEach(cat=>{
+      const vals=qs.map(q=>parseInt(state[side][cat][q])||0);
+      lines.push([side==='kyoto'?'京大':'相手',cat,...vals,vals.reduce((a,b)=>a+b,0)].join(','));
+    });
+  });
+  lines.push('');lines.push('#,背番号,原因,チーム');
+  [...state.kyoto_players.map(p=>({...p,t:'京大'})),...state.enemy_players.map(p=>({...p,t:'相手'}))].forEach(p=>{
+    lines.push([p.seq,`"${p.num}"`,p.cause,p.t].join(','));
+  });
+  lines.push('');lines.push('Q,京大〇,京大✕,京大率,相手〇,相手✕,相手率');
+  qs.forEach(q=>{
+    const ko=parseInt(state.cl.kyoto[q].o)||0,kx=parseInt(state.cl.kyoto[q].x)||0;
+    const eo=parseInt(state.cl.enemy[q].o)||0,ex=parseInt(state.cl.enemy[q].x)||0;
+    lines.push([q,ko,kx,calcRate(ko,kx)!==null?calcRate(ko,kx)+'%':'—',eo,ex,calcRate(eo,ex)!==null?calcRate(eo,ex)+'%':'—'].join(','));
+  });
+  const blob=new Blob([bom+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`to_${state.match.date}.csv`;a.click();
+  toast('✔ CSV保存しました','var(--green)');
+}
+
+function clearAll(){
+  if(!confirm('全データをクリアしますか？'))return;
+  state.kyoto=emptyGrid();state.enemy=emptyGrid();
+  state.kyoto_players=[];state.enemy_players=[];
+  state.cl={kyoto:emptyClQ(),enemy:emptyClQ()};
+  state.lowFields=new Set();
+  renderAll();toast('🗑 クリアしました');
+}
+
+document.getElementById('matchDate').value=new Date().toISOString().slice(0,10);
+buildQBar();renderAll();
 </script>
 
 </body>
