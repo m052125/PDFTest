@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF変換テスト</title>
+<style>
+  body { background:#0a0f1e; color:#f1f5f9; font-family:sans-serif; padding:20px; }
+  h2 { color:#60a5fa; }
+  .upload-zone {
+    border:2px dashed #243048; border-radius:12px; padding:30px;
+    text-align:center; cursor:pointer; margin:16px 0;
+    transition:border-color 0.2s;
+  }
+  .upload-zone:hover { border-color:#3b82f6; }
+  .btn { background:#3b82f6; color:#fff; border:none; border-radius:10px; padding:12px 24px; font-size:15px; font-weight:700; cursor:pointer; width:100%; margin-top:10px; }
+  .btn:disabled { background:#243048; color:#64748b; cursor:not-allowed; }
+  #log { background:#111827; border:1px solid #243048; border-radius:10px; padding:14px; margin-top:14px; font-size:13px; line-height:1.8; white-space:pre-wrap; min-height:80px; }
+  #log .ok  { color:#22c55e; }
+  #log .err { color:#ef4444; }
+  #log .info{ color:#60a5fa; }
+  #preview { margin-top:16px; }
+  #preview img { max-width:100%; border-radius:8px; border:1px solid #243048; display:block; margin-top:8px; }
+  .step { background:#1a2332; border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:13px; }
+  .step-num { color:#60a5fa; font-weight:700; margin-right:6px; }
+</style>
+</head>
+<body>
+
+<h2>🧪 PDF変換テスト</h2>
+<p style="color:#94a3b8;font-size:13px;">APIは使いません。PDFが正しく画像に変換できるか確認します。</p>
+
+<div style="background:#1a2332;border-radius:12px;padding:14px;margin-bottom:16px;">
+  <div class="step"><span class="step-num">①</span>このHTMLファイルをブラウザで<b>直接開いて</b>使用してください（Claude内プレビューでは動作確認のみ）</div>
+  <div class="step"><span class="step-num">②</span>PDFを選択 → 変換ログを確認 → プレビュー画像を確認</div>
+  <div class="step"><span class="step-num">③</span>画像が正常に表示されれば、本ツールも正常動作します</div>
+</div>
+
+<div class="upload-zone" onclick="document.getElementById('fi').click()"
+     ondragover="event.preventDefault()" ondrop="ev=>{ev.preventDefault();run(ev.dataTransfer.files[0])}">
+  <div style="font-size:32px">📄</div>
+  <div style="color:#94a3b8;font-size:13px;margin-top:6px">PDFまたは画像をタップ/ドロップ</div>
+</div>
+<input type="file" id="fi" accept=".pdf,image/*" style="display:none" onchange="run(this.files[0])">
+
+<div id="log"><span class="info">ファイルを選択してください...</span></div>
+<div id="preview"></div>
+
+<script>
+const log = document.getElementById('log');
+const preview = document.getElementById('preview');
+
+function addLog(msg, cls='info'){
+  const span = document.createElement('span');
+  span.className = cls;
+  span.textContent = msg + '\n';
+  log.appendChild(span);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function run(file){
+  if(!file) return;
+  log.innerHTML = '';
+  preview.innerHTML = '';
+  addLog(`ファイル名: ${file.name}`);
+  addLog(`ファイルサイズ: ${(file.size/1024).toFixed(1)} KB`);
+  addLog(`MIMEタイプ: ${file.type || '不明'}`);
+
+  const isPdf = file.type==='application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+  if(isPdf){
+    addLog('--- PDF変換開始 ---');
+    try {
+      addLog('PDF.js読み込み中...');
+      if(!window.pdfjsLib){
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('PDF.js CDN読み込み失敗（ネット接続を確認）'));
+          document.head.appendChild(s);
+        });
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+      addLog('PDF.js 読み込み完了', 'ok');
+
+      addLog('PDFデータ読み込み中...');
+      const buf = await file.arrayBuffer();
+      addLog(`ArrayBuffer: ${buf.byteLength} bytes`, 'ok');
+
+      const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+      addLog(`ページ数: ${pdf.numPages}`, 'ok');
+
+      const scale = 2.5;
+      const canvases = [];
+      for(let i = 1; i <= pdf.numPages; i++){
+        addLog(`ページ ${i}/${pdf.numPages} レンダリング中...`);
+        const page = await pdf.getPage(i);
+        const vp = page.getViewport({scale});
+        const c = document.createElement('canvas');
+        c.width = vp.width; c.height = vp.height;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
+        await page.render({canvasContext: ctx, viewport: vp}).promise;
+        canvases.push(c);
+        addLog(`  → ${vp.width.toFixed(0)}×${vp.height.toFixed(0)}px`, 'ok');
+      }
+
+      // 結合
+      const totalH = canvases.reduce((s,c)=>s+c.height,0);
+      const maxW = Math.max(...canvases.map(c=>c.width));
+      const merged = document.createElement('canvas');
+      merged.width = maxW; merged.height = totalH;
+      const mctx = merged.getContext('2d');
+      mctx.fillStyle='#fff'; mctx.fillRect(0,0,maxW,totalH);
+      let y=0; canvases.forEach(c=>{mctx.drawImage(c,0,y);y+=c.height;});
+
+      const dataUrl = merged.toDataURL('image/png');
+      const base64size = (dataUrl.length * 0.75 / 1024).toFixed(1);
+      addLog(`変換完了！画像サイズ: ${maxW.toFixed(0)}×${totalH.toFixed(0)}px, base64: ~${base64size}KB`, 'ok');
+      addLog('--- プレビュー表示 ---', 'ok');
+
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      preview.appendChild(document.createTextNode('▼ 変換結果プレビュー'));
+      preview.appendChild(img);
+
+      addLog('✅ 変換成功！本ツールで正常に解析できます', 'ok');
+
+    } catch(e) {
+      addLog('❌ エラー: ' + e.message, 'err');
+    }
+
+  } else {
+    addLog('画像ファイルとして読み込み中...');
+    const reader = new FileReader();
+    reader.onload = e => {
+      addLog('読み込み完了', 'ok');
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      preview.appendChild(document.createTextNode('▼ 画像プレビュー'));
+      preview.appendChild(img);
+      addLog('✅ 画像OK！本ツールで解析できます', 'ok');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+</script>
+
+</body>
+</html>
